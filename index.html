@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" type="text/css" href="css/main.css"/>
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css"/>
+    <script type="text/javascript" src="js/jquery.js"></script>
+    <script type="text/javascript" src="js/bootstrap.min.js"></script>
+    <script type="text/javascript">
+        oPage = {
+            aData:{
+                month:['January','February','March','April','May','June','July','August','September','October','November','December'],
+                formParameter: null,
+                nDias: null,
+                fechaInicio: null,
+                codeCountry: null
+            },
+            aDataApi:{
+                key: 'b63fdf57-6d5c-472b-8dbe-26f176235aef',
+                country: 'US',
+                year: 2016,
+                yearIni:null,
+                yearLast:null,
+                holidays:null
+            },
+            init: function () {
+                //date = date;
+                //month = month+1;
+                //year = year +1900;
+//                $('.datepicker').datepicker();
+//                $(".datepicker").datetimepicker({format: 'yyyy-mm-dd hh:ii'});
+
+                var formParameter = $('#formParameter');
+                oPage.aData.formParameter = formParameter;
+                oPage.aData.fechaInicio = this.newFechaInicio();
+                oPage.aData.nDias = oPage.aData.formParameter.find("input[name^=ndias]").val();
+                oPage.aData.codeCountry = oPage.aData.formParameter.find("input[name^=codigo]").val();
+
+                oPage.aDataApi.yearIni = parseInt(oPage.aData.fechaInicio.getYear())+1900;
+                var fecLast = this.newFechaInicio();
+                fecLast.setDate(parseInt(fecLast.getDate()) + parseInt(oPage.aData.nDias));
+                oPage.aDataApi.yearLast = parseInt(fecLast.getYear()) + 1900;
+                oPage.conexion(parseInt(oPage.aDataApi.yearIni),parseInt(oPage.aDataApi.yearLast));
+            },
+            generate:function () {
+                $('.div-result').html('');
+                var fechaInicio = oPage.aData.fechaInicio;
+                var nDias = oPage.aData.nDias;
+                var codeCountry = oPage.aData.codeCountry;
+                if($.isNumeric(nDias)){
+                    $('.p-ndias').html('Numero de dias: '+nDias);
+                    $('.p-country').html('Codigo de pais'+codeCountry);
+                    $('.p-fechainicio').html('Fecha de inicio'+fechaInicio);
+                    this.generateCalendar(nDias, fechaInicio);
+                }else{
+                    $('.p-ndias').html('Introduzca párametros / Párametros introducidos incorrectos');
+                }
+            },
+            generateCalendar:function(nDias, fechaInicio){
+                var divResultado = $('.div-result');
+//                console.log('fecha inicio: ' + fechaInicio);
+//                console.log('numero de dias: ' + nDias);
+
+                var dateInicio = fechaInicio.getDate();
+                var monthInicio = fechaInicio.getMonth();
+                var yearInicio = fechaInicio.getYear();
+
+                var nSemana = 0;
+                var fecToday = this.newFechaInicio();
+                var currentMonth = this.newMonth(fecToday.getMonth(),fecToday.getYear()+1900);
+                var currentWeek = this.newWeed();
+                var currentYear = this.newYear(fechaInicio.getYear());
+                var isAppenWeek = false;
+                var isAppenMonth = false;
+
+                var innerWeek = function(){
+                    currentWeek.appendTo($(currentMonth).find('tbody'));
+                    currentWeek = oPage.newWeed();
+                    isAppenWeek = true;
+                };
+                var innerMonth = function(){
+                    if (!isAppenWeek) {
+                        currentWeek.appendTo($(currentMonth).find('tbody'));
+                        currentWeek = oPage.newWeed();
+                    }
+                    currentMonth.appendTo(currentYear);
+                    if(fecToday.getYear()!= fecTomorrow.getYear()){
+                        currentMonth = oPage.newMonth(fecTomorrow.getMonth(),fecTomorrow.getYear()+1900);
+                    }else{
+                        currentMonth = oPage.newMonth(fecTomorrow.getMonth(),'');
+                    }
+                    isAppenMonth = true;
+                };
+
+                for (var i = 0; i < nDias; i++) {
+                    fecToday = this.newFechaInicio();
+                    var nToday = parseInt(fecToday.getDate() + i);
+                    fecToday.setDate(nToday);
+
+                    var fecTomorrow = this.newFechaInicio();
+                    var nTomorrow = parseInt(fecTomorrow.getDate() + i) + 1;
+                    fecTomorrow.setDate(nTomorrow);
+
+//                    var sYear = parseInt(fecToday.getYear()+1900).toString();
+//                    var sMonth = fecToday.getMont()<10? '0':'';
+//                    var sDate = '';
+                    currentWeek.children('td:eq(' + fecToday.getDay() + ')').html('<span>'+fecToday.getDate()+'</span>');
+                    var sFecha = parseInt(fecToday.getYear()+1900).toString()+'-'+
+                            (fecToday.getMonth()<10? '0':'')+
+                            parseInt(fecToday.getMonth()+1).toString()+'-'+
+                            (fecToday.getDate()<10? '0':'')+
+                            fecToday.getDate().toString();
+                    var bDayHoliday = oPage.getTextHoliday(sFecha);
+                    if (bDayHoliday !='') {
+                        currentWeek.children('td:eq(' + fecToday.getDay() + ')').addClass('danger');
+                        currentWeek.children('td:eq(' + fecToday.getDay() + ')').find('span').tooltip({
+                            title: bDayHoliday,
+                            placement : 'bottom'
+                        });
+                    }
+                    isAppenWeek = false;
+                    isAppenMonth = false;
+                    if (fecToday.getDay() > fecTomorrow.getDay()) {
+                        innerWeek.call();
+                    }
+
+                    if (fecToday.getMonth() != fecTomorrow.getMonth()) {
+                        innerMonth.call();
+                    }
+                }
+                if (!isAppenWeek) {
+                    innerWeek.call();
+                }
+                if (!isAppenMonth) {
+                    innerMonth.call();
+                }
+                currentYear.appendTo(divResultado);
+            },
+            newFechaInicio: function () {
+                var dateInicio = 11;
+                var monthInicio = 8;
+                var yearInicio = 2016;
+//                var fechaInicio = new Date(yearInicio-1900,monthInicio-1,dateInicio);
+                var fechaInicio = new Date(yearInicio, monthInicio - 1, dateInicio);
+                return fechaInicio;
+            },
+            newWeed: function () {
+                return this.copyElement('tr')
+            },
+            newMonth: function (nMonth,nYear) {
+                var divTable = this.copyElement('.div-month');
+                if(nYear==''){
+                    $(divTable).find('.title-month').html(oPage.aData.month[nMonth]);
+                }else {
+                    $(divTable).find('.title-month').html(nYear +' '+oPage.aData.month[nMonth]);
+                }
+                $(divTable).find('tbody').html('');
+                return $(divTable);
+            },
+            newYear: function (nYear) {
+                var div = this.copyElement('.div-year');
+                $(div).find('title-year').html(nYear);
+                div.html('');
+                return div;
+            },
+            copyElement: function (tipo) {
+                var recurso = $('#divTemplete').find(tipo.toString());
+                var clone = recurso.clone();
+                return clone;
+            },
+            conexion: function (yearCurrent,yearLast) {
+                if(yearCurrent<=yearLast){
+                    var parametros = {
+                        key: oPage.aDataApi.key,
+                        country: oPage.aDataApi.country,
+                        year: yearCurrent
+                    };
+                    $.ajax({
+                        data: parametros,
+                        url: 'https://holidayapi.com/v1/holidays',
+                        type: 'get',
+                        dataType: "json",
+                        beforeSend: function () {
+                            console.log('enviando datos');
+                        },
+                        success: function (response) {
+                        },
+                        complete:function (response) {
+                            console.log("complete" + yearCurrent);
+                            yearCurrent = parseInt(yearCurrent) +1;
+                            console.log(response);
+                            if(response && response.statusText!='error'){
+                                if(response && response.statusText=='OK' && response.status == 200){
+    //                                var data = $.parseJSON(holidays);
+                                    var holidays = response.responseJSON.holidays;
+                                    var holidaysText = response.responseText;
+                                    holidaysText = $.parseJSON(holidaysText);
+                                    var holidayOld = oPage.aDataApi.holidays;
+                                    if(holidayOld){
+                                        oPage.aDataApi.holidays = jQuery.extend(holidayOld, holidays );
+                                    }else{
+                                        oPage.aDataApi.holidays = holidays;
+                                    }
+                                    oPage.conexion(yearCurrent, yearLast);
+                                }
+                            }else{
+                                oPage.conexion(yearCurrent, yearLast);
+                            }
+                        }
+                    });
+                }else{
+                    console.log('generando');
+                    oPage.generate();
+                }
+            },
+            getTextHoliday:function (sFecha) {
+                var holidays = oPage.aDataApi.holidays;
+                var textResult ='';
+                if(holidays){
+                    var holiday = holidays[sFecha.toString()];
+                    $.each(holiday,  function( index, value ) {
+                        textResult = textResult? textResult +', '+ value.name: value.name;
+                    });
+                }
+                return textResult;
+            }
+        };
+        oVacation = {
+            aData:{
+                formVacation:null,
+                mVacation:{}
+            },
+            init:function () {
+//                oVacation.oData = new Array();
+            },
+            newVacation:function (sFecha, sDetail) {
+                oVacation.aData.mVacation[sFecha] = sDetail;
+            },
+            addVacation: function () {
+                oVacation.aData.formVacation = $('#formVacation');
+                var $oVacation = oVacation.newVacation(
+                    oVacation.aData.formVacation.find("input[name^=fechaVacation]").val(),
+                    oVacation.aData.formVacation.find("input[name^=detailVacation]").val()
+                );
+                console.log(oVacation.aData.mVacation);
+            }
+        };
+        $(document).ready(function () {
+            oPage.init();
+        });
+    </script>
+</head>
+<body>
+
+<div class="col-md-6">
+    <p class="bg-info text-title">Parameter:</p>
+    <form action="#" class="form-horizontal" id="formParameter" onsubmit="return false;" style="display: none">
+        <div class="div-form">
+            <div class="form-group">
+                <label for="fecha" class="col-md-3">Fecha: </label>
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-addon">@</span>
+                        <input type="text" name="fecha" placeholder="introduzca una fecha" class="form-control"/>
+                    </div>
+                    <!--<span class="glyphicon glyphicon-ok form-control-feedback" aria-hidden="true"></span>-->
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="numdias" class="col-md-3">Numero de dias: </label>
+
+                <div class="col-md-6">
+                    <input type="text" name="ndias" placeholder="introduzca un numero de dias" class="form-control" value="200"/>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="numdias" class="col-md-3">codigo de país: </label>
+
+                <div class="col-md-6">
+                    <input type="text" name="codigo" placeholder="introduzca el codigo de pais" class="form-control"/>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-default" onclick="oPage.generate()">Generar</button>
+        </div>
+    </form>
+</div>
+<div class="col-md-6" style="">
+    <p class="bg-info text-title">Vacations:</p>
+    <!-- Button trigger modal -->
+    <button type="button" class="btn btn-primary btn-lg" data-toggle="modal" data-target="#addVacation">
+        Add
+    </button>
+
+    <table class="table table-hover">
+        <thead>
+        <tr>
+            <th class="text-center">#</th>
+            <th class="text-center">Date</th>
+            <th class="text-center">Detail</th>
+        </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</div>
+
+<div class="box" style="display: none">
+    <div class="box-body">
+        <p class="bg-info p-ndias"></p>
+        <p class="bg-info p-country"></p>
+        <p class="bg-info p-fechainicio"></p>
+    </div>
+</div>
+
+<div class="modal fade" id="addVacation" tabindex="-1" role="dialog" aria-labelledby="addVacation">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="myModalLabel">Add Vacation</h4>
+            </div>
+            <div class="modal-body">
+                <form action="#" class="form-horizontal" id="formVacation" onsubmit="return false;" style="">
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="form-group">
+                                <label for="fecha" class="col-md-3">Fecha: </label>
+                                <div class="col-md-6">
+                                    <div class="input-group">
+                                        <input type="text" name="fechaVacation" placeholder="introduzca una fecha" class="form-control datepicker"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group">
+                                <label for="numdias" class="col-md-3">Detail: </label>
+                                <div class="col-md-6">
+                                    <input type="text" name="detailVacation" placeholder="Detail" class="form-control" size="100"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" onclick="oVacation.addVacation()">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="div-table-vacaciones-clone" style="display: none">
+    <table class="table table-hover">
+        <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+    </table>
+</div>
+
+<div class="row div-result" style="display: none"></div>
+
+<div class="row" style="display: none" id="divTemplete">
+    <div class="col-md-12 div-year">
+        <span class="title-year"></span>
+        <div class="div-month col-md-6">
+            <span class="title-month"></span>
+            <table class="table table-responsive">
+                <tbody>
+                <tr class="success">
+                    <td class="warning"></td>
+                    <td class="success"></td>
+                    <td class="success"></td>
+                    <td class="success"></td>
+                    <td class="success"></td>
+                    <td class="success"></td>
+                    <td class="warning"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>
